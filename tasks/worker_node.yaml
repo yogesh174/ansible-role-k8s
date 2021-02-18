@@ -1,5 +1,0 @@
----
-# tasks file for worker node
-
-- name: "Join with master"
-  shell: "{{ hostvars[groups['tag_node_master'][0]]['cmd']['stdout'] }}"

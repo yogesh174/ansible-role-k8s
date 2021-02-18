@@ -1,65 +1,43 @@
 ---
 # tasks file for master node
 
-# - name: "Install python"
-#   package:
-#     name: "python3"
-#     state: "present"
-
-# - name: Install or update pip
-#   easy_install:
-#     name: pip
-#     state: latest
-
-# - name: "Install openshift"
-#   pip:
-#     name: "openshift"
-#     executable: pip3
-
-- name: "Init command"
+- name: "Init kubeadm"
   shell: "kubeadm init --pod-network-cidr={{ network_name }} --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
   ignore_errors: yes
-  register: diff_cmd
+  register: init_cmd
 
-- name: Install, configure, and start Apache
+- name: "Init kubeadm block"
   block:
-    - name: configure kubectl
+    - name: "Configure kubectl - create directory"
       file:
         path: $HOME/.kube
         state: directory
         mode: 0755
 
-    - name: copy config file
-      shell: cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-
-    - name: change user
-      shell: chown $(id -u):$(id -g) $HOME/.kube/config
-
-    # - name: "Download flannel config file"
-    #   get_url:
-    #     url: "https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
-    #     dest: "/kube-flannel.yaml"
-
-    # - name: "Replace network name in flannel config file"
-    #   replace:
-    #     dest: "/kube-flannel.yaml"
-    #     regexp: "10.244.0.0/16"
-    #     replace: "{{ network_name }}"
-
-    # - name: "Deploy flannel"
-    #   k8s:
-    #     state: "present"
-    #     src: "./kube-flannel.yaml"
+    - name: "Configure kubectl - copy kubectl config file"
+      shell: "cp -i /etc/kubernetes/admin.conf $HOME/.kube/config"
+      args:
+        warn: false
     
-    - name: deploy flannel 1
+    - name: "Configure kubectl - change permissions"
+      shell: "chown $(id -u):$(id -g) $HOME/.kube/config"
+      args:
+        warn: false
+
+    - name: "Download and modify kube-flannel"
       shell: "curl https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml | sed  's@10.244.0.0/16@{{ network_name }}@' > kube-flannel.yml"
+      args:
+        warn: false
 
-
-    - name: deploy flannel 2
-      shell: kubectl apply -f kube-flannel.yml
+    - name: "Deploy kube-flannel"
+      shell: "kubectl apply -f kube-flannel.yml"
+      args:
+        warn: false
   
-  when: diff_cmd.rc == 0
+  when: init_cmd.rc == 0
 
-- name: "Init command"
+- name: "Create token command for worker nodes"
   shell: "kubeadm token create  --print-join-command"
   register: join_cmd
+  args:
+    warn: false

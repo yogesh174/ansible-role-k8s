@@ -1,2 +1,15 @@
 ---
 # vars file for create_k8s_cluster
+
+network_name: "10.240.0.0/16"
+
+services:
+  - "docker"
+  - "kubelet"
+
+software:
+  - "kubelet"
+  - "kubeadm"
+  - "kubectl"
+  - "docker"
+  - "iproute-tc"
