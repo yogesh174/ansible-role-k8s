@@ -1,0 +1,47 @@
+---
+# tasks file for all nodes
+
+- name: "Install software"
+  package:
+    name: "libselinux-python"
+    state: "present"
+
+- name: "Disable SELinux"
+  selinux:
+    state: "disabled"
+
+- name: "Copy k8s repo"
+  copy:
+    src: "kubernetes.repo"
+    dest: "/etc/yum.repos.d/"
+
+- name: "Install software"
+  package:
+    name: "{{ item }}"
+    state: "present"
+  loop: "{{ software }}"
+
+- name: "Copy docker daemon file"
+  copy:
+    src: "daemon.json"
+    dest: "/etc/docker/"
+
+- name: "Copy k8s conf file 1 - IP tables error"
+  copy:
+    src: "modules-load.d_k8s.conf"
+    dest: "/etc/modules-load.d/k8s.conf"
+
+- name: "Copy k8s conf file 2 - IP tables error"
+  copy:
+    src: "sysctl.d_k8s.conf"
+    dest: "/etc/sysctl.d/k8s.conf"
+
+- name: "Enable and start services"
+  service:
+    name: "{{ item }}"
+    state: "restarted"
+    enabled: "yes"
+  loop: "{{ services }}"
+
+- name: "Run sysctl --system commmand - IP tables error"
+  command: "sysctl --system"

@@ -1,0 +1,65 @@
+---
+# tasks file for master node
+
+# - name: "Install python"
+#   package:
+#     name: "python3"
+#     state: "present"
+
+# - name: Install or update pip
+#   easy_install:
+#     name: pip
+#     state: latest
+
+# - name: "Install openshift"
+#   pip:
+#     name: "openshift"
+#     executable: pip3
+
+- name: "Init command"
+  shell: "kubeadm init --pod-network-cidr={{ network_name }} --ignore-preflight-errors=NumCPU --ignore-preflight-errors=Mem"
+  ignore_errors: yes
+  register: diff_cmd
+
+- name: Install, configure, and start Apache
+  block:
+    - name: configure kubectl
+      file:
+        path: $HOME/.kube
+        state: directory
+        mode: 0755
+
+    - name: copy config file
+      shell: cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+
+    - name: change user
+      shell: chown $(id -u):$(id -g) $HOME/.kube/config
+
+    # - name: "Download flannel config file"
+    #   get_url:
+    #     url: "https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml"
+    #     dest: "/kube-flannel.yaml"
+
+    # - name: "Replace network name in flannel config file"
+    #   replace:
+    #     dest: "/kube-flannel.yaml"
+    #     regexp: "10.244.0.0/16"
+    #     replace: "{{ network_name }}"
+
+    # - name: "Deploy flannel"
+    #   k8s:
+    #     state: "present"
+    #     src: "./kube-flannel.yaml"
+    
+    - name: deploy flannel 1
+      shell: "curl https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml | sed  's@10.244.0.0/16@{{ network_name }}@' > kube-flannel.yml"
+
+
+    - name: deploy flannel 2
+      shell: kubectl apply -f kube-flannel.yml
+  
+  when: diff_cmd.rc == 0
+
+- name: "Init command"
+  shell: "kubeadm token create  --print-join-command"
+  register: join_cmd
