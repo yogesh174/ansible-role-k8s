@@ -1,4 +1,4 @@
-yogesh174.ansible_role_provisioning
+yogesh174.ansible_role_k8s
 =========
 
 This role configures HA k8s cluster.
